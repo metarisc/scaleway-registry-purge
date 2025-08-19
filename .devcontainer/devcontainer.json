@@ -1,0 +1,9 @@
+{
+    "name": "Scaleway Registry Purge",
+    "image": "python:3.13",
+    "workspaceFolder": "/workspace",
+    "mounts": [
+        "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached"
+    ],
+    "remoteUser": "root"
+}
