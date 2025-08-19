@@ -29,8 +29,14 @@ When you use a Scaleway container registry as part of a development workflow, th
 - `NAMESPACE_ID`: Target a specific namespace (optional)
   - If set, operations will be limited to this namespace only
   - If not set, operations will apply to all namespaces
+- `IMAGE_ID`: Target a specific image (optional)
+  - If set, operations will be limited to this image only
+  - Takes precedence over `NAMESPACE_ID` if both are set
+  - If not set, operations will apply to all images (or namespace if `NAMESPACE_ID` is set)
 
 ## Usage Examples
+
+**Note**: If both `NAMESPACE_ID` and `IMAGE_ID` are specified, `IMAGE_ID` takes precedence and the script will only process the specified image, regardless of the namespace setting.
 
 ### Delete only old tags (default behavior)
 ```bash
@@ -83,6 +89,22 @@ export DELETE_OLD_TAGS=true
 export DELETE_UNUSED_NAMESPACE=true
 ```
 
+### Target a specific image only
+```bash
+export REGION=fr-par
+export IMAGE_ID=22222222-2222-2222-2222-222222222222
+export DELETE_OLD_TAGS=true
+export TAG_NAME_PATTERN=".*-temp$"
+```
+
+### Target a specific image with name pattern matching
+```bash
+export REGION=fr-par
+export IMAGE_ID=22222222-2222-2222-2222-222222222222
+export DELETE_OLD_TAGS=false
+export TAG_NAME_PATTERN="^(dev|test)-.*"
+```
+
 ### Disable all deletion (dry run mode)
 ```bash
 export REGION=fr-par
@@ -114,7 +136,8 @@ scw function function deploy \
   --env-vars DELETE_OLD_TAGS=true \
   --env-vars TAG_NAME_PATTERN="^dev-.*" \
   --env-vars DELETE_UNUSED_NAMESPACE=true \
-  --env-vars NAMESPACE_ID=11111111-1111-1111-1111-111111111111
+  --env-vars NAMESPACE_ID=11111111-1111-1111-1111-111111111111 \
+  --env-vars IMAGE_ID=22222222-2222-2222-2222-222222222222
 ```
 
 ## Response Format
@@ -153,7 +176,8 @@ The function returns a JSON response with detailed information:
         "delete_old_tags": true,
         "tag_name_pattern": "^dev-.*",
         "delete_unused_namespaces": true,
-        "target_namespace_id": "11111111-1111-1111-1111-111111111111"
+        "target_namespace_id": "11111111-1111-1111-1111-111111111111",
+        "target_image_id": "22222222-2222-2222-2222-222222222222"
       }
     }
   },

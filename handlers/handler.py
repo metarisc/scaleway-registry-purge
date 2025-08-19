@@ -48,6 +48,7 @@ def handle(event, context):
     tag_name_pattern = os.environ.get('TAG_NAME_PATTERN', None)  # Regex pour matcher les noms de tags
     delete_unused_namespaces = os.environ.get('DELETE_UNUSED_NAMESPACE', 'false').lower() == 'true'
     target_namespace_id = os.environ.get('NAMESPACE_ID', None)  # ID du namespace spécifique à cibler
+    target_image_id = os.environ.get('IMAGE_ID', None)  # ID de l'image spécifique à cibler
     
     # Initialiser le client Scaleway
     client = Client.from_config_file_and_env()
@@ -57,9 +58,21 @@ def handle(event, context):
     namespaces_to_delete = []
     
     try:
-        # Récupérer toutes les images (pagination automatique avec le SDK)
-        # Si un namespace spécifique est ciblé, filtrer les images par namespace
-        if target_namespace_id:
+        # Récupérer les images selon les critères de ciblage
+        if target_image_id:
+            # Si une image spécifique est ciblée, la récupérer directement
+            try:
+                image = registry_api.get_image(
+                    region=region,
+                    image_id=target_image_id
+                )
+                images_response = [image]
+                print(f"Ciblage de l'image spécifique {target_image_id}")
+            except Exception as e:
+                print(f"Erreur lors de la récupération de l'image {target_image_id}: {e}")
+                images_response = []
+        elif target_namespace_id:
+            # Si un namespace spécifique est ciblé, filtrer les images par namespace
             images_response = registry_api.list_images_all(
                 region=region,
                 namespace_id=target_namespace_id,
@@ -67,6 +80,7 @@ def handle(event, context):
             )
             print(f"Trouvé {len(images_response)} images à analyser dans le namespace {target_namespace_id}")
         else:
+            # Récupérer toutes les images
             images_response = registry_api.list_images_all(
                 region=region,
                 order_by="created_at_asc"
@@ -120,6 +134,8 @@ def handle(event, context):
             criteria_summary.append("namespaces vides")
         if target_namespace_id:
             criteria_summary.append(f"namespace ciblé: {target_namespace_id}")
+        if target_image_id:
+            criteria_summary.append(f"image ciblée: {target_image_id}")
         
         if criteria_summary:
             print(f"Critères de suppression actifs: {', '.join(criteria_summary)}")
@@ -248,7 +264,8 @@ def handle(event, context):
                         "delete_old_tags": delete_old_tags,
                         "tag_name_pattern": tag_name_pattern,
                         "delete_unused_namespaces": delete_unused_namespaces,
-                        "target_namespace_id": target_namespace_id
+                        "target_namespace_id": target_namespace_id,
+                        "target_image_id": target_image_id
                     }
                 }
             },
@@ -268,7 +285,8 @@ def handle(event, context):
                         "delete_old_tags": delete_old_tags if 'delete_old_tags' in locals() else False,
                         "tag_name_pattern": tag_name_pattern if 'tag_name_pattern' in locals() else None,
                         "delete_unused_namespaces": delete_unused_namespaces if 'delete_unused_namespaces' in locals() else False,
-                        "target_namespace_id": target_namespace_id if 'target_namespace_id' in locals() else None
+                        "target_namespace_id": target_namespace_id if 'target_namespace_id' in locals() else None,
+                        "target_image_id": target_image_id if 'target_image_id' in locals() else None
                     }
                 }
             },
