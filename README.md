@@ -14,6 +14,8 @@ When you use a Scaleway container registry as part of a development workflow, th
 
 ### Required
 - `REGION`: The Scaleway region where your registry is located (e.g., `fr-par`)
+- `SCW_ACCESS_KEY`: Your Scaleway access key
+- `SCW_SECRET_KEY`: Your Scaleway secret key
 
 ### Optional
 - `DELETE_OLD_TAGS`: Enable/disable deletion of old tags (default: `true`)
