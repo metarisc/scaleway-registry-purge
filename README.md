@@ -131,7 +131,7 @@ scw function function deploy \
   --name registry-purge \
   --runtime python311 \
   --zip-file functions.zip \
-  --handler handlers.handler.handle \
+  --handler "handlers/handlers.handle" \
   --env-vars REGION=fr-par \
   --env-vars DELETE_OLD_TAGS=true \
   --env-vars TAG_NAME_PATTERN="^dev-.*" \
