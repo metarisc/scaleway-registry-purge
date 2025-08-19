@@ -26,6 +26,9 @@ When you use a Scaleway container registry as part of a development workflow, th
 - `DELETE_UNUSED_NAMESPACE`: Enable/disable deletion of empty namespaces (default: `false`)
   - Set to `true` to delete namespaces that contain no images after tag cleanup
   - Set to `false` to keep empty namespaces
+- `NAMESPACE_ID`: Target a specific namespace (optional)
+  - If set, operations will be limited to this namespace only
+  - If not set, operations will apply to all namespaces
 
 ## Usage Examples
 
@@ -64,6 +67,22 @@ export TAG_NAME_PATTERN="^(dev|test)-.*"
 export DELETE_UNUSED_NAMESPACE=true
 ```
 
+### Target a specific namespace only
+```bash
+export REGION=fr-par
+export NAMESPACE_ID=11111111-1111-1111-1111-111111111111
+export DELETE_OLD_TAGS=true
+export TAG_NAME_PATTERN=".*-temp$"
+```
+
+### Cleanup only a specific namespace (including empty namespace deletion)
+```bash
+export REGION=fr-par
+export NAMESPACE_ID=11111111-1111-1111-1111-111111111111
+export DELETE_OLD_TAGS=true
+export DELETE_UNUSED_NAMESPACE=true
+```
+
 ### Disable all deletion (dry run mode)
 ```bash
 export REGION=fr-par
@@ -94,7 +113,8 @@ scw function function deploy \
   --env-vars REGION=fr-par \
   --env-vars DELETE_OLD_TAGS=true \
   --env-vars TAG_NAME_PATTERN="^dev-.*" \
-  --env-vars DELETE_UNUSED_NAMESPACE=true
+  --env-vars DELETE_UNUSED_NAMESPACE=true \
+  --env-vars NAMESPACE_ID=11111111-1111-1111-1111-111111111111
 ```
 
 ## Response Format
@@ -132,7 +152,8 @@ The function returns a JSON response with detailed information:
       "criteria_used": {
         "delete_old_tags": true,
         "tag_name_pattern": "^dev-.*",
-        "delete_unused_namespaces": true
+        "delete_unused_namespaces": true,
+        "target_namespace_id": "11111111-1111-1111-1111-111111111111"
       }
     }
   },

@@ -47,6 +47,7 @@ def handle(event, context):
     delete_old_tags = os.environ.get('DELETE_OLD_TAGS', 'true').lower() == 'true'
     tag_name_pattern = os.environ.get('TAG_NAME_PATTERN', None)  # Regex pour matcher les noms de tags
     delete_unused_namespaces = os.environ.get('DELETE_UNUSED_NAMESPACE', 'false').lower() == 'true'
+    target_namespace_id = os.environ.get('NAMESPACE_ID', None)  # ID du namespace spécifique à cibler
     
     # Initialiser le client Scaleway
     client = Client.from_config_file_and_env()
@@ -57,12 +58,20 @@ def handle(event, context):
     
     try:
         # Récupérer toutes les images (pagination automatique avec le SDK)
-        images_response = registry_api.list_images_all(
-            region=region,
-            order_by="created_at_asc"
-        )
-        
-        print(f"Trouvé {len(images_response)} images à analyser")
+        # Si un namespace spécifique est ciblé, filtrer les images par namespace
+        if target_namespace_id:
+            images_response = registry_api.list_images_all(
+                region=region,
+                namespace_id=target_namespace_id,
+                order_by="created_at_asc"
+            )
+            print(f"Trouvé {len(images_response)} images à analyser dans le namespace {target_namespace_id}")
+        else:
+            images_response = registry_api.list_images_all(
+                region=region,
+                order_by="created_at_asc"
+            )
+            print(f"Trouvé {len(images_response)} images à analyser dans tous les namespaces")
         
         # Parcourir chaque image pour récupérer ses tags
         for image in images_response:
@@ -109,6 +118,8 @@ def handle(event, context):
             criteria_summary.append(f"tags matchant le pattern: '{tag_name_pattern}'")
         if delete_unused_namespaces:
             criteria_summary.append("namespaces vides")
+        if target_namespace_id:
+            criteria_summary.append(f"namespace ciblé: {target_namespace_id}")
         
         if criteria_summary:
             print(f"Critères de suppression actifs: {', '.join(criteria_summary)}")
@@ -158,11 +169,25 @@ def handle(event, context):
         
         if delete_unused_namespaces:
             try:
-                # Récupérer tous les namespaces
-                namespaces_response = registry_api.list_namespaces_all(region=region)
-                print(f"Vérification de {len(namespaces_response)} namespaces pour suppression des namespaces vides")
+                # Si un namespace spécifique est ciblé, ne vérifier que celui-ci
+                if target_namespace_id:
+                    # Récupérer le namespace spécifique
+                    try:
+                        namespace = registry_api.get_namespace(
+                            region=region,
+                            namespace_id=target_namespace_id
+                        )
+                        namespaces_to_check = [namespace]
+                        print(f"Vérification du namespace ciblé {target_namespace_id} pour suppression s'il est vide")
+                    except Exception as e:
+                        print(f"Erreur lors de la récupération du namespace {target_namespace_id}: {e}")
+                        namespaces_to_check = []
+                else:
+                    # Récupérer tous les namespaces
+                    namespaces_to_check = registry_api.list_namespaces_all(region=region)
+                    print(f"Vérification de {len(namespaces_to_check)} namespaces pour suppression des namespaces vides")
                 
-                for namespace in namespaces_response:
+                for namespace in namespaces_to_check:
                     try:
                         # Vérifier si le namespace contient des images
                         images_in_namespace = registry_api.list_images_all(
@@ -222,7 +247,8 @@ def handle(event, context):
                     "criteria_used": {
                         "delete_old_tags": delete_old_tags,
                         "tag_name_pattern": tag_name_pattern,
-                        "delete_unused_namespaces": delete_unused_namespaces
+                        "delete_unused_namespaces": delete_unused_namespaces,
+                        "target_namespace_id": target_namespace_id
                     }
                 }
             },
@@ -241,7 +267,8 @@ def handle(event, context):
                     "criteria_used": {
                         "delete_old_tags": delete_old_tags if 'delete_old_tags' in locals() else False,
                         "tag_name_pattern": tag_name_pattern if 'tag_name_pattern' in locals() else None,
-                        "delete_unused_namespaces": delete_unused_namespaces if 'delete_unused_namespaces' in locals() else False
+                        "delete_unused_namespaces": delete_unused_namespaces if 'delete_unused_namespaces' in locals() else False,
+                        "target_namespace_id": target_namespace_id if 'target_namespace_id' in locals() else None
                     }
                 }
             },
